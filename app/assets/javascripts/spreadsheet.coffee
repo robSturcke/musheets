@@ -59,23 +59,61 @@ App.spreadsheet =
 			contextMenu: true
 			afterSelection: () => @select_cells(arguments)
 			afterDeselect: () => @deselect_cells()
-      afterChange: (changes, source) =>
+			afterChange: (changes, source) =>
 				if source != 'remote' && changes
 					for change in changes
 						App.spread_sheet_cells.set_cell_value(
 							{ r: change[0], c: change[1] },
 							change[3]
 						)
+			afterRenderer: () => @render_selected_cells()
 		)
+
+		@hot.acquireEditLock = (editor, callback) =>
+			location = {r: editor.row, c: editor.col}
+			@cell_lock_callback[location] = callback
+			App.active_users.lock_cell(location)
+
+		@hot.releaseEditLock = (editor, callback) =>
+			location = {r: editor.row, c: editor.col}
+			App.active_users.unlock_cell(location)
+			callback()
 
 	select_cells: (cells) ->
 		App.active_users.select_cells(r: cells[0], c: cells[1], r2: cells[2], c2: cells[3])
 
 	deselect_cells: () -> App.active_users.select_cells(null)
 
-  update_cell: (update) ->
+	update_cell: (update) ->
 		location = r: update.location[0], c: update.location[1]
 		value = update.value
 		@hot.setDataAtCell(location.r, location.c, value, 'remote')
 
-$ -> App.spreadsheet.setup()
+		if update.lock == @current_user.id
+			@cell_lock_callback[location]?()
+			delete @cell_lock_callback[location]
+
+# Monkey patch HandsOnTable BaseEditor for communicating editor locks
+MultiEditorPatch =
+	inject: ->
+		baseProto = Handsontable.editors.BaseEditor.prototype
+		baseProto.beginEditing = @beginEditing(baseProto.beginEditing)
+		baseProto.finishEditing = @finishEditing(baseProto.finishEditing)
+
+	beginEditing: (original) -> (initialValue, event) ->
+		if @instance.acquireEditLock
+			@instance.acquireEditLock(@, => original.apply(@, [initialValue, event]))
+		else
+			original.apply(@, arguments)
+
+	finishEditing: (original) -> (restoreOriginalValue, ctrlDown, callback) ->
+		if @instance.releaseEditLock && @state == 'STATE_EDITING'
+			@instance.releaseEditLock(@, => original.apply(@, [restoreOriginalValue, ctrlDown, callback]))
+		else
+			original.apply(@, arguments)
+
+
+
+$ ->
+  App.spreadsheet.setup()
+  MultiEditorPatch.inject()
