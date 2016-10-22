@@ -1,14 +1,20 @@
 <% content_for(:head) do %>
-    <%= javascript_include_tag "https://cdnjs.cloudflare.com/ajax/libs/handsontable/0.26.1/handsontable.full.js" %>
-    <%= stylesheet_link_tag "https://cdnjs.cloudflare.com/ajax/libs/handsontable/0.26.1/handsontable.full.css" %>
+	<%= javascript_include_tag "https://cdnjs.cloudflare.com/ajax/libs/handsontable/0.26.1/handsontable.full.js" %>
+	<%= stylesheet_link_tag "https://cdnjs.cloudflare.com/ajax/libs/handsontable/0.26.1/handsontable.full.css" %>
 <% end %>
 
-<h1>Spreadsheet#index</h1>
-<p>Find me in app/views/spreadsheet/index.html.erb</p>
+<section id="introduction">
+	<h1>Multi-User Spreadsheet Demo</h1>
+	<p>
+		This web application combines Rails 5.0 ActionCable with RethinkDB and the NoBrainer
+		gem to power a multi-user WebSockets driven spreadsheet.
+	</p>
+</section>
+
 <section id="active_users">
-    <h2>Active users</h2>
-    <ul id="active_users_list">
-    </ul>
+	<h2>Active users</h2>
+	<ul id="active_users_list">
+	</ul>
 </section>
 
 <section id="spreadsheet">
